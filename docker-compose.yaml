@@ -21,8 +21,8 @@ services:
       PUID: ${SERVICE_USER:-1000}
       PGID: ${SERVICE_GROUP:-1000}
     volumes:
-      - ./rootfs/config/linkding:/config
-      - ./rootfs/data/linkding:/data
+      - ./volumes/config/linkding:/config
+      - ./volumes/data/linkding:/data
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9090"]
       interval: 30s
