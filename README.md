@@ -47,8 +47,8 @@ See `docker-compose.yaml` for complete list of configurable options.
 
 ## 📂 Volumes
 
-- `./rootfs/config/linkding` - Data storage
-- `./rootfs/data/linkding` - Data storage
+- `./volumes/config/linkding` - Data storage
+- `./volumes/data/linkding` - Data storage
 
 ## 🔍 Logging
 
