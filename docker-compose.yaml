@@ -16,10 +16,14 @@ services:
     logging: *default-logging
     networks:
       - linkding
+      - proxy
+      - cloudflare
     ports:
       - "172.17.0.1:9090:9090"
     environment:
       TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: linkding-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
       LD_SUPERUSER_NAME: ${APP_ADMIN_USER:-admin}
       LD_SUPERUSER_PASSWORD: ${APP_ADMIN_PASS:-changeme_admin_password}
       LD_DISABLE_BACKGROUND_TASKS: false
@@ -34,8 +38,28 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://linkding-app:9090'
+      - 'cloudflare.hostname=linkding.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.linkding-app.entrypoints=http'
+      - 'traefik.http.routers.linkding-app-secure.tls=true'
+      - 'traefik.http.routers.linkding-app.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.linkding-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.linkding-app.middlewares=linkding-app-https-redirect'
+      - 'traefik.http.routers.linkding-app-secure.entrypoints=https'
+      - 'traefik.http.routers.linkding-app-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.linkding-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.linkding-app-secure.service=linkding-app'
+      - 'traefik.http.services.linkding-app.loadbalancer.server.port=9090'
 
 networks:
   linkding:
     name: linkding
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
