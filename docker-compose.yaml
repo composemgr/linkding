@@ -1,5 +1,6 @@
 # nginx proxy address - http://172.17.0.1:9090
 
+name: linkding
 x-logging: &default-logging
   driver: json-file
   options:
@@ -9,26 +10,32 @@ x-logging: &default-logging
 services:
   linkding:
     image: sissbruecker/linkding:latest
+    pull_policy: always
     container_name: linkding-app
-    restart: unless-stopped
+    restart: always
     logging: *default-logging
     networks:
       - linkding
     ports:
-      - "9090:9090"
+      - "172.17.0.1:9090:9090"
     environment:
       TZ: ${TZ:-America/New_York}
-      PUID: ${SERVICE_USER:-1000}
-      PGID: ${SERVICE_GROUP:-1000}
+      LD_SUPERUSER_NAME: ${APP_ADMIN_USER:-admin}
+      LD_SUPERUSER_PASSWORD: ${APP_ADMIN_PASS:-changeme_admin_password}
+      LD_DISABLE_BACKGROUND_TASKS: false
+      LD_DISABLE_URL_VALIDATION: false
+      LD_ENABLE_AUTH_PROXY: false
+      LD_REQUEST_TIMEOUT: 60
+      LD_DB_ENGINE: sqlite
     volumes:
-      - ./volumes/config/linkding:/config
-      - ./volumes/data/linkding:/data
+      - ./volumes/data/linkding:/etc/linkding/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9090"]
+      test: ["CMD", "curl", "-f", "http://localhost:9090/health"]
       interval: 30s
       timeout: 10s
       retries: 3
 
 networks:
   linkding:
+    name: linkding
     external: false
