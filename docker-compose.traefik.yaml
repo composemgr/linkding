@@ -1,0 +1,56 @@
+name: linkding
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "5m"
+    max-file: "1"
+
+services:
+  app:
+    image: sissbruecker/linkding:latest
+    container_name: linkding-app
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    pull_policy: always
+    restart: always
+    logging: *default-logging
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.linkding-app.entrypoints=http'
+      - 'traefik.http.routers.linkding-app.rule=Host(`${BASE_HOST_NAME:-$HOSTNAME}`)'
+      - 'traefik.http.routers.linkding-app.middlewares=linkding-app-https-redirect'
+      - 'traefik.http.middlewares.linkding-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.linkding-app-secure.entrypoints=https'
+      - 'traefik.http.routers.linkding-app-secure.rule=Host(`${BASE_HOST_NAME:-$HOSTNAME}`)'
+      - 'traefik.http.routers.linkding-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.linkding-app-secure.service=linkding-app'
+      - 'traefik.http.services.linkding-app.loadbalancer.server.port=9090'
+    networks:
+      - linkding
+      - traefik
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: linkding-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      LD_SUPERUSER_NAME: ${APP_ADMIN_USER:-admin}
+      LD_SUPERUSER_PASSWORD: ${APP_ADMIN_PASS:-replace-with-a-random-password}
+      LD_DISABLE_BACKGROUND_TASKS: 'false'
+      LD_DISABLE_URL_VALIDATION: 'false'
+      LD_ENABLE_AUTH_PROXY: 'false'
+      LD_REQUEST_TIMEOUT: 60
+      LD_DB_ENGINE: sqlite
+    volumes:
+      - './volumes/data/linkding:/etc/linkding/data:z'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9090/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  linkding:
+    name: linkding
+    external: false
+  traefik:
+    external: true

@@ -1,0 +1,48 @@
+name: linkding
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "5m"
+    max-file: "1"
+
+services:
+  app:
+    image: sissbruecker/linkding:latest
+    container_name: linkding-app
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    pull_policy: always
+    restart: always
+    logging: *default-logging
+    labels:
+      - 'cloudflare.enable=true'
+      - 'cloudflare.service=http://linkding-app:9090'
+      - 'cloudflare.hostname=${BASE_HOST_NAME:-$HOSTNAME}'
+    networks:
+      - linkding
+      - cloudflare
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: linkding-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      LD_SUPERUSER_NAME: ${APP_ADMIN_USER:-admin}
+      LD_SUPERUSER_PASSWORD: ${APP_ADMIN_PASS:-replace-with-a-random-password}
+      LD_DISABLE_BACKGROUND_TASKS: 'false'
+      LD_DISABLE_URL_VALIDATION: 'false'
+      LD_ENABLE_AUTH_PROXY: 'false'
+      LD_REQUEST_TIMEOUT: 60
+      LD_DB_ENGINE: sqlite
+    volumes:
+      - './volumes/data/linkding:/etc/linkding/data:z'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9090/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  linkding:
+    name: linkding
+    external: false
+  cloudflare:
+    external: true
